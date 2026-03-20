@@ -7,9 +7,20 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from services.utils import decode
 
+
+def interceptor(request):
+    """
+    Bloqueia ficheiros pesados e desnecessários para o scraping de dados.
+    """
+    blocked_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.css', '.woff', '.woff2', '.ttf', '.svg', '.ico')
+    blocked_domains = ('google-analytics.com', 'googletagmanager.com', 'facebook.net', 'doubleclick.net')
+    
+    if request.url.endswith(blocked_extensions) or any(domain in request.url for domain in blocked_domains):
+        request.abort()
 
 def open_browser(headless=True):
     options = Options()
@@ -20,33 +31,38 @@ def open_browser(headless=True):
     options.add_argument("--log-level=3")
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    options.add_argument("--start-maximized")
     
-    # FORÇANDO A DESATIVAÇÃO DE CACHE (Isto resolve as respostas em branco)
     options.add_argument("--incognito")
     options.add_argument("--disable-cache")
     options.add_argument("--disable-application-cache")
     
     driver = webdriver.Chrome(options=options)
     
+    driver.request_interceptor = interceptor
+    
     if not headless:
         driver.maximize_window()
         
     return driver
 
-
-def scroll_and_capture(driver, url, timeout=20):
+def scroll_and_capture(driver, url, match_id=None, key=None, timeout=20):
     driver.set_page_load_timeout(timeout)
-    del driver.requests 
+    del driver.requests
     
     try:
         driver.get(url)
         WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
     except Exception as e:
-        print(f"⚠️ Aviso de lentidão: {e}")
+        print(f"⚠️ Aviso de lentidão na página: {e}")
 
     driver.execute_script("window.scrollTo(0, 600);")
-    time.sleep(5)
+    
+    if match_id and key:
+        try:
+            target_url = f"/api/v1/event/{match_id}/{key}"
+            driver.wait_for_request(target_url, timeout=10)
+        except TimeoutException:
+            print(f"⚠️ API {key} não intercetada a tempo, vai tentar via JS Fetch.")
     
 
 def get_all_rounds_and_matches(driver):

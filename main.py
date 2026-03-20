@@ -15,18 +15,16 @@ def main():
             
             driver = scrp.open_browser(headless=False)
             driver.get(url)
-            time.sleep(5) 
+            time.sleep(2) 
             
             print("📂 Mapeando todas as rodadas e partidas...")
             lista_jogos = scrp.get_all_rounds_and_matches(driver)
-            scrp.close_browser(driver)
             
             print(f"🎯 Total de {len(lista_jogos)} partidas encontradas.")
 
             for i, jogo in enumerate(lista_jogos):
-                process_match(session, jogo['id'], jogo['url'])
-                
-                time.sleep(2)
+                process_match(session, jogo['id'], jogo['url'], driver)
+            scrp.close_browser(driver)
 
             session.close()
             print("\n🏁 Processamento de torneio finalizado!")
