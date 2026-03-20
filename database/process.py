@@ -1,3 +1,5 @@
+import traceback
+
 import services.scrapping as scrp
 from models.player import Player
 from models.match import Match
@@ -70,3 +72,4 @@ def process_match(session, match_id, match_url):
     except Exception as e:
         session.rollback()
         print(f"❌ Erro ao processar partida {match_id}: {e}")
+        traceback.print_exc()

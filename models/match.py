@@ -30,7 +30,18 @@ class Match(Base):
     def __init__(self, event):
         self.id = event['id']
         self.year = event['season']['year']
-        self.round = event['roundInfo']['name']
+        
+        round_info = event.get('roundInfo', {})
+        
+        round_name = round_info.get('name')
+        
+        if not round_name:
+            round_number = round_info.get('round')
+            if round_number is not None:
+                round_name = f"Round {round_number}"
+            else:
+                round_name = "Desconhecida"
+                
         self.stadium = event['venue']['name']
         self.city = event['venue']['city']['name']
         
