@@ -30,7 +30,7 @@ def worker_tarefa(jogo):
     session = thread_local.session
     
     try:
-        process_match(session, jogo['id'], jogo['url'], driver)
+        process_match(session, jogo['id'], jogo['url'], driver, jogo.get('ui_round_name'))
     except Exception as e:
         logging.error(f"❌ Erro crítico na thread ao processar o jogo {jogo['id']}: {e}")
 

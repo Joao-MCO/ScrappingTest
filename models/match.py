@@ -27,13 +27,13 @@ class Match(Base):
     home_team = relationship("Team", foreign_keys=[home_team_id])
     away_team = relationship("Team", foreign_keys=[away_team_id])
 
-    def __init__(self, event):
+    def __init__(self, event, ui_round_name=None):
         self.id = event['id']
         self.year = event['season']['year']
         
         round_info = event.get('roundInfo', {})
         
-        round_name = round_info.get('name')
+        round_name = ui_round_name if ui_round_name else round_info.get('name')
         
         if not round_name:
             round_number = round_info.get('round')

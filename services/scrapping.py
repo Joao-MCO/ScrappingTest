@@ -107,12 +107,13 @@ def get_all_rounds_and_matches(driver):
                 valid_opts = [o for o in current_options if len(o.text.strip()) > 0 and "Select" not in o.text]
                 
                 target = valid_opts[i]
-                print(f" ➡️  Processando: {target.text.strip()} ({i+1}/{total_rounds})")
-                
+                ui_round_name = target.text.strip()
+                print(f" ➡️  Processando: {ui_round_name} ({i+1}/{total_rounds})")
+
                 driver.execute_script("arguments[0].click();", target)
                 time.sleep(4) 
                 
-                all_matches.extend(get_all_match_links(driver))
+                all_matches.extend(get_all_match_links(driver, ui_round_name))
                 
             except Exception as e:
                 print(f"⚠️ Erro na rodada {i+1}")
@@ -126,7 +127,7 @@ def get_all_rounds_and_matches(driver):
     return list(unique_dict.values())
 
 
-def get_all_match_links(driver):
+def get_all_match_links(driver, round_name):
     """
     Captura links de partidas encerradas (FT, AET ou PEN) para evitar erro de dados incompletos.
     """
@@ -142,7 +143,7 @@ def get_all_match_links(driver):
                 
                 if link and "/football/match/" in link:
                     full_url = link if "sofascore.com" in link else f"https://www.sofascore.com{link}"
-                    matches_found.append({"id": match_id, "url": full_url})
+                    matches_found.append({"id": match_id, "url": full_url, "ui_round_name": round_name})
         except:
             continue
             

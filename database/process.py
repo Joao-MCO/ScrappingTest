@@ -39,7 +39,9 @@ def process_match(session, match_id, match_url, driver):
             try:
                 partida_existente = session.query(Match).filter_by(id=int(match_id)).first()
                 if partida_existente: continue
-                match = Match(event_data['event'])
+                
+                # Repasse para a classe Match
+                match = Match(event_data['event'], ui_round_name)
                 
                 session.merge(match.competition)
                 
