@@ -8,7 +8,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-
+import logging
+from tenacity import retry, stop_after_attempt, wait_fixed
 from services.utils import decode
 
 
@@ -148,94 +149,60 @@ def get_all_match_links(driver):
     return matches_found
 
 
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(3))
 def get_data_by_key(driver, match_id, key):
-    """
-    Busca requisição específica (lineups ou statistics) com fallback imbatível via JS Fetch.
-    """
-    # 1. TENTA INTERCEPTAR NA REDE
     for request in reversed(driver.requests):
         if request.response and request.method == "GET":
             if f"/{key}" in request.url and f"/api/v1/event/{match_id}" in request.url:
                 data = decode(request.response.body)
                 if data:
-                    print(f"    ✅ API '{key}' capturada na rede!")
+                    logging.info(f"    ✅ API '{key}' capturada na rede!")
                     return data
 
-    # 2. MODO RESGATE VIA JS FETCH
-    print(f"    ⚠️ '{key}' não interceptado. Forçando o download via navegador...")
-    try:
-        driver.set_script_timeout(10)
-        
-        js_script = f"""
-        var callback = arguments[arguments.length - 1];
-        fetch('https://www.sofascore.com/api/v1/event/{match_id}/{key}')
-            .then(response => {{
-                if (response.ok) return response.json();
-                throw new Error('Sem dados');
-            }})
-            .then(data => callback(data))
-            .catch(error => callback(null));
-        """
-        
-        data = driver.execute_async_script(js_script)
-        
-        if data:
-            print(f"    ✅ API '{key}' resgatada via JS Fetch com sucesso!")
-            return data
-        else:
-            print(f"    ❌ A API '{key}' não existe para esta partida no SofaScore.")
-            
-    except Exception as e:
-        print(f"    ❌ Erro fatal no resgate de {key}: {e}")
-        
-    return None
+    logging.warning(f"    ⚠️ '{key}' não interceptado. Forçando o download via JS Fetch...")
+    driver.set_script_timeout(10)
+    
+    js_script = f"""
+    var callback = arguments[arguments.length - 1];
+    fetch('https://www.sofascore.com/api/v1/event/{match_id}/{key}')
+        .then(response => response.json())
+        .then(data => callback(data))
+        .catch(error => callback(null));
+    """
+    data = driver.execute_async_script(js_script)
+    
+    if data:
+        logging.info(f"    ✅ API '{key}' resgatada via JS Fetch com sucesso!")
+        return data
+    else:
+        raise Exception(f"❌ Falha ao tentar resgatar a API '{key}'.")
 
-
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(3))
 def get_event_by_id(driver, event_id):
-    """
-    Tenta interceptar via Selenium Wire. Se falhar (SSR/Cache), 
-    força o próprio navegador a fazer um fetch interno, burlando o erro 403.
-    """
     target = f"/api/v1/event/{event_id}"
     invalid_subpaths = ["/graph", "/lineups", "/statistics", "/h2h", "/odds", "/votes"]
     
-    # 1. TENTATIVA 1: INTERCEPTAÇÃO PADRÃO
     for request in reversed(driver.requests):
         if request.response and request.method == "GET" and target in request.url:
             if not any(sub in request.url for sub in invalid_subpaths):
                 data = decode(request.response.body)
                 if data and 'event' in data:
-                    print(f"    ✅ API 'event' capturada na rede!")
                     return data
 
-    # 2. TENTATIVA 2: RESGATE VIA JAVASCRIPT FETCH (Bypass 403)
-    print(f"    ⚠️ 'event' não interceptado. Usando o navegador para forçar o download (Bypass 403)...")
-    try:
-        # Define um tempo máximo para o script JS rodar
-        driver.set_script_timeout(10)
-        
-        # Injeta um código JavaScript no navegador que faz a requisição e devolve o JSON
-        js_script = f"""
-        var callback = arguments[arguments.length - 1]; // Callback do Selenium para voltar ao Python
-        fetch('https://www.sofascore.com/api/v1/event/{event_id}')
-            .then(response => response.json())
-            .then(data => callback(data))
-            .catch(error => callback(null));
-        """
-        
-        # Executa o script de forma assíncrona (espera o fetch terminar)
-        data = driver.execute_async_script(js_script)
-        
-        if data and 'event' in data:
-            print(f"    ✅ API 'event' resgatada via JS Fetch com sucesso!")
-            return data
-        else:
-            print(f"    ❌ JS Fetch retornou dados inválidos.")
-            
-    except Exception as e:
-        print(f"    ❌ Erro fatal no resgate JS: {e}")
-        
-    return None
+    logging.warning(f"    ⚠️ 'event' não interceptado. Usando o JS Fetch...")
+    js_script = f"""
+    var callback = arguments[arguments.length - 1];
+    fetch('https://www.sofascore.com/api/v1/event/{event_id}')
+        .then(response => response.json())
+        .then(data => callback(data))
+        .catch(error => callback(null));
+    """
+    data = driver.execute_async_script(js_script)
+    
+    if data and 'event' in data:
+        return data
+    else:
+        raise Exception("❌ JS Fetch retornou dados inválidos no event. Tentando novamente...")
 
 def close_browser(driver):
     driver.quit()

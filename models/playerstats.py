@@ -44,13 +44,13 @@ class PlayerStats(Base):
         
         if 'home' in lineups_json and 'players' in lineups_json['home']:
             for p_data in lineups_json['home']['players']:
-                if p_data['statistics']['rating']:
+                if p_data.get('statistics', {}).get('rating'):
                     stat = PlayerStats(match_id, home_team_id, p_data)
                     player_stats_rows.append(stat)
 
         if 'away' in lineups_json and 'players' in lineups_json['away']:
             for p_data in lineups_json['away']['players']:
-                if p_data['statistics']['rating']:
+                if p_data.get('statistics', {}).get('rating'):
                     stat = PlayerStats(match_id, away_team_id, p_data)
                     player_stats_rows.append(stat)
 

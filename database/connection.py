@@ -21,10 +21,10 @@ DATABASE_PWD = os.getenv("NEONDB_PWD")
 
 engine = create_engine(f"postgresql://{DATABASE_USER}:{DATABASE_PWD}@{DATABASE_URL}?sslmode=require&channel_binding=require", echo=False)
 
-def init_db():
-    """Cria todas as tabelas no NeonDB se elas ainda não existirem."""
-    Base.metadata.create_all(engine)
-    print("🗄️ Tabelas do PostgreSQL (NeonDB) verificadas/criadas com sucesso!")
+# def init_db():
+#     """Cria todas as tabelas no NeonDB se elas ainda não existirem."""
+#     Base.metadata.create_all(engine)
+#     print("🗄️ Tabelas do PostgreSQL (NeonDB) verificadas/criadas com sucesso!")
 
 SessionLocal = sessionmaker(bind=engine)
 
