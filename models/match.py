@@ -42,6 +42,7 @@ class Match(Base):
             else:
                 round_name = "Desconhecida"
                 
+        self.round = round_name
         self.stadium = event['venue']['name']
         self.city = event['venue']['city']['name']
         
