@@ -38,6 +38,7 @@ def main():
     parser = argparse.ArgumentParser(description="Crawler de Torneios/Partidas do SofaScore")
     parser.add_argument("--file", required=True, help="Caminho para o arquivo .txt com as URLs (uma por linha)")
     parser.add_argument("--workers", type=int, default=3, help="Número de partidas processadas em simultâneo")
+    parser.add_argument("--upsert", type=bool, default=False, help="Flag para rodar um update nos dados quando houver a partida registrada.")
     args = parser.parse_args()
 
     try:

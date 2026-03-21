@@ -11,7 +11,7 @@ from models.playerstats import PlayerStats
 
 TABS = ['lineups', 'statistics']
 
-def process_match(session, match_id, match_url, driver, ui_round_name):
+def process_match(session, match_id, match_url, driver, ui_round_name, upsert=False):
     """
     Realiza o scraping de uma partida específica e salva no NeonDB com proteção contra concorrência.
     """
@@ -38,9 +38,8 @@ def process_match(session, match_id, match_url, driver, ui_round_name):
         for attempt in range(max_retries):
             try:
                 partida_existente = session.query(Match).filter_by(id=int(match_id)).first()
-                if partida_existente: continue
+                if partida_existente and upsert: continue
                 
-                # Repasse para a classe Match
                 match = Match(event_data['event'], ui_round_name)
                 
                 session.merge(match.competition)
