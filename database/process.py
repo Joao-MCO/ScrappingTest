@@ -11,7 +11,7 @@ from models.playerstats import PlayerStats
 
 TABS = ['lineups', 'statistics']
 
-def process_match(session, match_id, match_url, driver):
+def process_match(session, match_id, match_url, driver, ui_round_name):
     """
     Realiza o scraping de uma partida específica e salva no NeonDB com proteção contra concorrência.
     """
